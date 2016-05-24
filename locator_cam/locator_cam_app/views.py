@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from locator_cam_app.forms import UserForm, UserProfileForm
 from locator_cam_app.models import UserProfile
@@ -33,8 +34,8 @@ def register(request):
 
 			profile.save()
 
-			user = authenticate(username=user.username, password=request.POST.get('password'))
-			login(request, user)
+			#user = authenticate(username=user.username, password=request.POST.get('password'))
+			#login(request, user)
 			registered = True
 		else:
 			print('{0:}\n{1:}'.format(user_form.errors, profile_form.errors))
@@ -63,6 +64,7 @@ def user_login(request):
 	else:
 		return render(request, 'locator_cam_app/login.html', {})
 
+@login_required
 def search_user(request):
 	users = []
 	if request.method == 'POST':
@@ -70,6 +72,7 @@ def search_user(request):
 		users = User.objects.filter(username__icontains=username)
 	return render(request, 'locator_cam_app/search_user.html', {'users': users})	
 
+@login_required
 def add_friend(request):
 	if request.method == 'POST':
 		other_user_name = request.POST.get('username')
@@ -79,10 +82,12 @@ def add_friend(request):
 		return HttpResponse("{0:s} became your friend!".format(other_user_name))
 	return redirect('/locator-cam/')
 
+@login_required
 def logout_user(request):
 	logout(request)
 	return redirect('/locator-cam')
 
+@login_required
 def unfriend(request):
 	if request.method == 'POST':
 		user = request.user
