@@ -5,5 +5,33 @@
 </head>
 <body>
 	<h1>LocatorCam</h1>
+	{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
+        {% endfor %}
+    </ul>
+	{% endif %}
+	<p><a href="/locator-cam/register">Register</a></p>
+	<p><a href="/locator-cam/login/">Login</a></p>
+	<p><a href="/locator-cam/search-user/">Search User</a></p>
+	{% if user.username %}
+	<p>User Profile:</p>
+	<p>Username: {{ user.username }}</p>
+	<p>Email: {{ user.email }}</p>
+	{% if user.userprofile.friends.all.count > 0 %}
+	<ul>
+		{% for friend in user.userprofile.friends.all %}
+		<li>{{friend.user.username}}</li>
+		<form method="post" action="/locator-cam/unfriend/">
+			{% csrf_token %}
+			<input type="hidden" name="username" value="{{friend.user.username}}">
+			<input type="submit" name="submit" value="unfriend"/>
+		</form>
+		{% endfor %}
+	</ul>
+	{% endif %}
+	{% endif %}
+	<p><a href="/locator-cam/logout/">Logout</a></p>
 </body>
 </html>

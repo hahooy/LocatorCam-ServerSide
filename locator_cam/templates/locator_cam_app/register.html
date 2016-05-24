@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>LocatorCam</title>
+</head>
+<body>
+	<h1>Register in LocatorCam</h1>
+
+	{% if registered %}
+	<div><p>thank you for registering</p></div>
+	<div><a href="/locator-cam/">Go back to home page: </a></div>
+	{% else %}
+	<p>Register here!</p>
+	<form method="post" action="/locator-cam/register/">
+		{% csrf_token %}
+
+		{{ user_form.as_p }}
+		{{ profile_form.as_p }}
+		
+		<input type="submit" name="submit" value="register"/>
+	</form>
+
+	{% endif %}
+</body>
+</html>

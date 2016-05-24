@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>LocatorCam</title>
+</head>
+<body>
+	<form method="post" action="/locator-cam/search-user/">
+		{% csrf_token %}
+		<input type="text" name="username" value="">
+		<input type="submit" name="submit" value="search-user">
+	</form>
+	<a href="/locator-cam/">Go back to homepage</a>
+	{% if users %}
+	<ul>
+		{% for user in users %}
+			<li>
+				<p>{{ user.username }}</p>
+				<form method="post" action="/locator-cam/add-friend/">
+					{% csrf_token %}
+					<input type="hidden" name="username" value="{{user.username}}">			
+					<input type="submit" name="submit" value="add friend">
+				</form>
+			</li>
+		{% endfor %}
+	<ul>
+	{% endif %}
+
+</body>
+</html>
