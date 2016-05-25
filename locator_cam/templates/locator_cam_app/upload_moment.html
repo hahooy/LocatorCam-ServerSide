@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>LocatorCam</title>
+</head>
+<body>
+	<h1>Share your moment</h1>
+	<form method="post" action="/locator-cam/upload-moment/">
+		{% csrf_token %}
+
+		{{ photo_form.as_p }}
+		{{ moment_form.as_p }}
+		
+	</form>
+</body>
+</html>

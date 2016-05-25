@@ -14,7 +14,9 @@
 	{% endif %}
 	<p><a href="/locator-cam/register">Register</a></p>
 	<p><a href="/locator-cam/login/">Login</a></p>
+	<p><a href="/locator-cam/logout/">Logout</a></p>
 	<p><a href="/locator-cam/search-user/">Search User</a></p>
+	<p><a href="/locator-cam/upload-moment/">Upload Moment</a></p>
 	{% if user.username %}
 	<p>User Profile:</p>
 	<p>Username: {{ user.username }}</p>
@@ -32,6 +34,5 @@
 	</ul>
 	{% endif %}
 	{% endif %}
-	<p><a href="/locator-cam/logout/">Logout</a></p>
 </body>
 </html>

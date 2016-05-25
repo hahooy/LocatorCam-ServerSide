@@ -9,5 +9,6 @@ urlpatterns = [
 	url(r'^search-user/$', views.search_user, name='search-user'),
 	url(r'^add-friend/$', views.add_friend, name='add-friend'),
 	url(r'^logout/$', views.logout_user, name='logout'),
-	url(r'^unfriend/$', views.unfriend, name='unfriend')
+	url(r'^unfriend/$', views.unfriend, name='unfriend'),
+	url(r'^upload-moment/$', views.upload_moment, name='upload-moment')
 ]

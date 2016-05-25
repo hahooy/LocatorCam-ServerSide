@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 import hashlib
 
 class Photo(models.Model):
-	base64_image_str = models.TextField()
+	photo = models.ImageField(upload_to='moment_images', blank=True)
+	#base64_image_str = models.TextField()
 
 	def __str__(self):
 		return self.base64_image_str
@@ -14,7 +15,8 @@ class Moment(models.Model):
 	longitude = models.FloatField()
 	user_profile = models.ForeignKey(User)
 	photo = models.OneToOneField(Photo)
-	thumbnail_base64 = models.TextField()
+	thumbnail = models.ImageField(upload_to='thumbnail_images', blank=True)
+	#thumbnail_base64 = models.TextField()
 	pub_time = models.DateTimeField(auto_now_add=True)
 
 	def __str__(self):

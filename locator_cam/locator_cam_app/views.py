@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from locator_cam_app.forms import UserForm, UserProfileForm
+from locator_cam_app.forms import UserForm, UserProfileForm, PhotoForm, MomentForm
 from locator_cam_app.models import UserProfile
 
 
@@ -99,8 +99,16 @@ def unfriend(request):
 	else:
 		return redirect('404')
 
+@login_required
+def upload_moment(request):
+	if request.method == 'POST':
+		return HttpResponse('iamges')
 
+	else:
+		photo_form = PhotoForm()
+		moment_form = MomentForm()
 
+		return render(request, 'locator_cam_app/upload_moment.html', {'photo_form': photo_form, 'moment_form': moment_form})
 
 
 
