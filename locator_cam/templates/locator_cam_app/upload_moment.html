@@ -5,12 +5,12 @@
 </head>
 <body>
 	<h1>Share your moment</h1>
-	<form method="post" action="/locator-cam/upload-moment/">
+	<form method="post" action="/locator-cam/upload-moment/" enctype="multipart/form-data">
 		{% csrf_token %}
 
 		{{ photo_form.as_p }}
 		{{ moment_form.as_p }}
-		
+		<input type="submit" name="submit" value="upload">
 	</form>
 </body>
 </html>

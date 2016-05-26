@@ -5,13 +5,23 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from locator_cam_app.forms import UserForm, UserProfileForm, PhotoForm, MomentForm
-from locator_cam_app.models import UserProfile
+from locator_cam_app.models import UserProfile, Moment
 
 
 # Create your views here.
 
 def index(request):
-	return render(request, 'locator_cam_app/index.html', {})
+	if request.user.is_authenticated():
+		my_moments = UserProfile.objects.get(user__username=request.user.username).user.moment_set.all()
+		my_moments_urls = [moment.thumbnail.url for moment in my_moments]
+		friend_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
+		friend_moments = Moment.objects.filter(user__userprofile__in=friend_profiles)
+		friend_moments_urls = [moment.thumbnail.url for moment in friend_moments]
+		print('url of my moments: {0:}'.format(my_moments_urls))
+		return render(request, 'locator_cam_app/index.html', {'moments': my_moments_urls + friend_moments_urls})
+	else:
+		print('user is none')
+	return render(request, 'locator_cam_app/index.html')
 
 def register(request):
 	registered = False
@@ -56,7 +66,7 @@ def user_login(request):
 		if user:
 			if user.is_active:
 				login(request, user)
-				return render(request, 'locator_cam_app/index.html', {'user': request.user})
+				return redirect('/locator-cam')
 			else:
 				return HttpResponse("Your account is disabled.")
 		else:
@@ -102,13 +112,26 @@ def unfriend(request):
 @login_required
 def upload_moment(request):
 	if request.method == 'POST':
-		return HttpResponse('iamges')
+		photo_form = PhotoForm(request.POST, request.FILES)
+		moment_form = MomentForm(request.POST, request.FILES)
+
+		if photo_form.is_valid() and moment_form.is_valid():
+			photo = photo_form.save()
+			moment = moment_form.save(commit=False)
+
+			moment.photo = photo
+			moment.user = request.user
+			moment.save()
+
+			return HttpResponse('Your moment has been uploaded successfully')
+		else:
+			print('{0:}\n{1:}'.format(photo_form.errors, moment_form.errors))
 
 	else:
 		photo_form = PhotoForm()
 		moment_form = MomentForm()
 
-		return render(request, 'locator_cam_app/upload_moment.html', {'photo_form': photo_form, 'moment_form': moment_form})
+	return render(request, 'locator_cam_app/upload_moment.html', {'photo_form': photo_form, 'moment_form': moment_form})
 
 
 

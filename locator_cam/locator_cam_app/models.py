@@ -7,13 +7,13 @@ class Photo(models.Model):
 	#base64_image_str = models.TextField()
 
 	def __str__(self):
-		return self.base64_image_str
+		return self.photo.url
 
 class Moment(models.Model):
 	description = models.TextField()
 	latitude = models.FloatField()
 	longitude = models.FloatField()
-	user_profile = models.ForeignKey(User)
+	user = models.ForeignKey(User)
 	photo = models.OneToOneField(Photo)
 	thumbnail = models.ImageField(upload_to='thumbnail_images', blank=True)
 	#thumbnail_base64 = models.TextField()
