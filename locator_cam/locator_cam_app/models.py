@@ -19,6 +19,9 @@ class Moment(models.Model):
 	#thumbnail_base64 = models.TextField()
 	pub_time = models.DateTimeField(auto_now_add=True)
 
+	class Meta:
+		ordering = ['-pub_time']
+
 	def __str__(self):
 		return self.description
 

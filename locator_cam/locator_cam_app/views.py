@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Q
 from locator_cam_app.forms import UserForm, UserProfileForm, PhotoForm, MomentForm
 from locator_cam_app.models import UserProfile, Moment
 
@@ -12,13 +13,16 @@ from locator_cam_app.models import UserProfile, Moment
 
 def index(request):
 	if request.user.is_authenticated():
-		my_moments = UserProfile.objects.get(user__username=request.user.username).user.moment_set.all()
-		my_moments_urls = [moment.thumbnail.url for moment in my_moments]
-		friend_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
-		friend_moments = Moment.objects.filter(user__userprofile__in=friend_profiles)
-		friend_moments_urls = [moment.thumbnail.url for moment in friend_moments]
-		print('url of my moments: {0:}'.format(my_moments_urls))
-		return render(request, 'locator_cam_app/index.html', {'moments': my_moments_urls + friend_moments_urls})
+		my_profile = request.user.userprofile
+		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
+		#my_moments = UserProfile.objects.get(user__username=request.user.username).user.moment_set.all()
+		#my_moments_urls = [moment.thumbnail.url for moment in my_moments]
+		#friend_moments = Moment.objects.filter(user__userprofile__in=friend_profiles)
+		#friend_moments_urls = [moment.thumbnail.url for moment in friend_moments]
+		all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))
+		all_moments_urls = [moment.thumbnail.url + ' ' + str(moment.pub_time) for moment in all_moments]
+		print('url of my moments: {0:}'.format(all_moments_urls))
+		return render(request, 'locator_cam_app/index.html', {'moments': all_moments_urls})
 	else:
 		print('user is none')
 	return render(request, 'locator_cam_app/index.html')
