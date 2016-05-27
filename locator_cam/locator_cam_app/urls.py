@@ -10,5 +10,6 @@ urlpatterns = [
 	url(r'^add-friend/$', views.add_friend, name='add-friend'),
 	url(r'^logout/$', views.logout_user, name='logout'),
 	url(r'^unfriend/$', views.unfriend, name='unfriend'),
-	url(r'^upload-moment/$', views.upload_moment, name='upload-moment')
+	url(r'^upload-moment/$', views.upload_moment, name='upload-moment'),
+	url(r'^delete-moment/$', views.delete_moment, name='delete-moment')
 ]

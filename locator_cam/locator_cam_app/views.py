@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -13,12 +13,12 @@ from locator_cam_app.models import UserProfile, Moment
 
 def index(request):
 	if request.user.is_authenticated():
+		# retrieve moments from me and my friends' profile
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()		
 		all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))
 		all_moments_urls = [moment.thumbnail.url + ' ' + str(moment.pub_time) for moment in all_moments]
-		print('url of my moments: {0:}'.format(all_moments_urls))
-		return render(request, 'locator_cam_app/index.html', {'moments': all_moments_urls})
+		return render(request, 'locator_cam_app/index.html', {'moments': all_moments})
 	else:
 		print('user is none')
 	return render(request, 'locator_cam_app/index.html')
@@ -116,13 +116,13 @@ def upload_moment(request):
 		moment_form = MomentForm(request.POST, request.FILES)
 
 		if photo_form.is_valid() and moment_form.is_valid():
-			photo = photo_form.save()
-			moment = moment_form.save(commit=False)
 
-			moment.photo = photo
+			moment = moment_form.save(commit=False)
 			moment.user = request.user
 			moment.save()
-
+			photo = photo_form.save(commit=False)
+			photo.moment = moment
+			photo.save()
 			return HttpResponse('Your moment has been uploaded successfully')
 		else:
 			print('{0:}\n{1:}'.format(photo_form.errors, moment_form.errors))
@@ -133,11 +133,13 @@ def upload_moment(request):
 
 	return render(request, 'locator_cam_app/upload_moment.html', {'photo_form': photo_form, 'moment_form': moment_form})
 
-
-
-
-
-
+@login_required
+def delete_moment(request):
+	if request.method == 'POST':
+		Moment.objects.get(pk=request.POST.get('pk')).delete()
+		return HttpResponse('moment deleted')
+	else:
+		return HttpResponseForbidden('Only support POST request.')
 
 
 
