@@ -17,7 +17,7 @@ class Moment(models.Model):
 	photo = models.OneToOneField(Photo)
 	thumbnail = models.ImageField(upload_to='thumbnail_images', blank=True)
 	#thumbnail_base64 = models.TextField()
-	pub_time = models.DateTimeField(auto_now_add=True)
+	pub_time = models.DateTimeField(db_index=True, auto_now_add=True)
 
 	class Meta:
 		ordering = ['-pub_time']

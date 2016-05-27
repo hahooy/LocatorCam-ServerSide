@@ -14,11 +14,7 @@ from locator_cam_app.models import UserProfile, Moment
 def index(request):
 	if request.user.is_authenticated():
 		my_profile = request.user.userprofile
-		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
-		#my_moments = UserProfile.objects.get(user__username=request.user.username).user.moment_set.all()
-		#my_moments_urls = [moment.thumbnail.url for moment in my_moments]
-		#friend_moments = Moment.objects.filter(user__userprofile__in=friend_profiles)
-		#friend_moments_urls = [moment.thumbnail.url for moment in friend_moments]
+		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()		
 		all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))
 		all_moments_urls = [moment.thumbnail.url + ' ' + str(moment.pub_time) for moment in all_moments]
 		print('url of my moments: {0:}'.format(all_moments_urls))
