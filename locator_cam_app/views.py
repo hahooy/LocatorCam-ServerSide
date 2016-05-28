@@ -8,6 +8,8 @@ from django.db.models import Q
 from locator_cam_app.forms import UserForm, UserProfileForm, PhotoForm, MomentForm
 from locator_cam_app.models import UserProfile, Moment
 
+import json
+
 
 # Create your views here.
 
@@ -30,6 +32,8 @@ def register(request):
 		user_form = UserForm(data=request.POST)
 		profile_form = UserProfileForm(data=request.POST)
 
+		info = {'error': None} # the response JSON object containing error information
+
 		if user_form.is_valid() and profile_form.is_valid():
 			user = user_form.save()
 
@@ -44,17 +48,16 @@ def register(request):
 
 			profile.save()
 
-			#user = authenticate(username=user.username, password=request.POST.get('password'))
-			#login(request, user)
 			registered = True
 		else:
-			print('{0:}\n{1:}'.format(user_form.errors, profile_form.errors))
+			info['error'] = '{0:}{1:}'.format(user_form.errors, profile_form.errors)
+
+		return HttpResponse(json.dumps(info))
 
 	else:
 		user_form = UserForm()
 		profile_form = UserProfileForm()
-
-	return render(request, 'locator_cam_app/register.html', {'user_form': user_form, 'profile_form': profile_form, 'registered': registered})
+		return render(request, 'locator_cam_app/register.html', {'user_form': user_form, 'profile_form': profile_form, 'registered': registered})
 
 def user_login(request):
 	if request.method == 'POST':
@@ -63,15 +66,28 @@ def user_login(request):
 
 		user = authenticate(username=username, password=password)
 
+		# the user information is returned as a json object in the http response
+		user_info = {
+			'username': None,
+			'email': None,
+			'friends': None,
+			'error': None
+		}
+
 		if user:
 			if user.is_active:
 				login(request, user)
-				# return redirect('/locator-cam')
-				return HttpResponse("Login successfully")
+
+				# update the user information
+				user_info['username'] = request.user.username
+				user_info['email'] = request.user.email
+				user_info['friends'] = [friend.user.username for friend in user.userprofile.friends.all()]
 			else:
-				return HttpResponse("Your account is disabled.")
+				user_info['error'] = 'Account disabled'
 		else:
-			return HttpResponse("invalid credentials")
+			user_info['error'] = 'Invalid credentials'
+
+		return HttpResponse(json.dumps(user_info))
 	else:
 		return render(request, 'locator_cam_app/login.html', {})
 
@@ -89,6 +105,9 @@ def add_friend(request):
 		other_user_name = request.POST.get('username')
 		other_user = User.objects.get(username=other_user_name)
 		this_user = request.user
+		if this_user == other_user:
+			# adding the user itself as its friend is not allowed
+			return HttpResponse("error")
 		this_user.userprofile.friends.add(other_user.userprofile)
 		return HttpResponse("{0:s} became your friend!".format(other_user_name))
 	return redirect('/locator-cam/')
