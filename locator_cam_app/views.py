@@ -66,7 +66,8 @@ def user_login(request):
 		if user:
 			if user.is_active:
 				login(request, user)
-				return redirect('/locator-cam')
+				# return redirect('/locator-cam')
+				return HttpResponse("Login successfully")
 			else:
 				return HttpResponse("Your account is disabled.")
 		else:
