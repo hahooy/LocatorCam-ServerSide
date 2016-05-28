@@ -1,0 +1,1 @@
+web: gunicorn locator_cam.wsgi

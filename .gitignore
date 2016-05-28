@@ -1,3 +1,4 @@
 locator_cam/locator_cam/settings.py
 *.pyc
 locator_cam/media
+*~

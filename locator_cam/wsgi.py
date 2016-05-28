@@ -14,3 +14,8 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "locator_cam.settings")
 
 application = get_wsgi_application()
+
+# Heroku deployment settings
+
+from whitenoise.django import DjangoWhiteNoise
+application = DjangoWhiteNoise(application)
