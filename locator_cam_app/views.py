@@ -95,22 +95,47 @@ def user_login(request):
 def search_user(request):
 	users = []
 	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
 		username = request.POST.get('username')
 		users = User.objects.filter(username__icontains=username)
+		if content_type == 'JSON':
+			res_json = {
+				'users': [user.username for user in users]
+			}
+			return HttpResponse(json.dumps(res_json))
+
 	return render(request, 'locator_cam_app/search_user.html', {'users': users})	
 
 @login_required
 def add_friend(request):
 	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
 		other_user_name = request.POST.get('username')
 		other_user = User.objects.get(username=other_user_name)
 		this_user = request.user
 		if this_user == other_user:
 			# adding the user itself as its friend is not allowed
-			return HttpResponse("error")
+			return HttpResponse(json.dumps({'message': 'error'})) if content_type == 'JSON' else HttpResponse('error')
 		this_user.userprofile.friends.add(other_user.userprofile)
-		return HttpResponse("{0:s} became your friend!".format(other_user_name))
+		message = "{0:s} became your friend!".format(other_user_name)
+		return HttpResponse(json.dumps({'message': message})) if content_type == 'JSON' else HttpResponse(message)
 	return redirect('/locator-cam/')
+
+@login_required
+def number_of_friends(request):
+	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
+		number_of_friends = User.objects.get(username=request.user.username).userprofile.friends.count()
+		return HttpResponse(json.dumps({'number_of_friends': number_of_friends})) if content_type == 'JSON' else HttpResponse(number_of_friends)
+	return HttpResponse('This API only supports POST request')
+
+@login_required
+def get_all_friends(request):
+	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
+		friends = [friend.user.username for friend in request.user.userprofile.friends.all()]
+		return HttpResponse(json.dumps({'friends': friends})) if content_type == 'JSON' else HttpResponse(friends)
+	return HttpResponse('This API only supports POST request')
 
 @login_required
 def logout_user(request):
