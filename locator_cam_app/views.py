@@ -8,6 +8,8 @@ from django.db.models import Q
 from locator_cam_app.forms import UserForm, UserProfileForm, PhotoForm, MomentForm
 from locator_cam_app.models import UserProfile, Moment
 
+import json
+
 
 # Create your views here.
 
@@ -30,6 +32,8 @@ def register(request):
 		user_form = UserForm(data=request.POST)
 		profile_form = UserProfileForm(data=request.POST)
 
+		info = {'error': None} # the response JSON object containing error information
+
 		if user_form.is_valid() and profile_form.is_valid():
 			user = user_form.save()
 
@@ -44,17 +48,16 @@ def register(request):
 
 			profile.save()
 
-			#user = authenticate(username=user.username, password=request.POST.get('password'))
-			#login(request, user)
 			registered = True
 		else:
-			print('{0:}\n{1:}'.format(user_form.errors, profile_form.errors))
+			info['error'] = '{0:}{1:}'.format(user_form.errors, profile_form.errors)
+
+		return HttpResponse(json.dumps(info))
 
 	else:
 		user_form = UserForm()
 		profile_form = UserProfileForm()
-
-	return render(request, 'locator_cam_app/register.html', {'user_form': user_form, 'profile_form': profile_form, 'registered': registered})
+		return render(request, 'locator_cam_app/register.html', {'user_form': user_form, 'profile_form': profile_form, 'registered': registered})
 
 def user_login(request):
 	if request.method == 'POST':
@@ -63,15 +66,28 @@ def user_login(request):
 
 		user = authenticate(username=username, password=password)
 
+		# the user information is returned as a json object in the http response
+		user_info = {
+			'username': None,
+			'email': None,
+			'friends': None,
+			'error': None
+		}
+
 		if user:
 			if user.is_active:
 				login(request, user)
-				# return redirect('/locator-cam')
-				return HttpResponse("Login successfully")
+
+				# update the user information
+				user_info['username'] = request.user.username
+				user_info['email'] = request.user.email
+				user_info['friends'] = [friend.user.username for friend in user.userprofile.friends.all()]
 			else:
-				return HttpResponse("Your account is disabled.")
+				user_info['error'] = 'Account disabled'
 		else:
-			return HttpResponse("invalid credentials")
+			user_info['error'] = 'Invalid credentials'
+
+		return HttpResponse(json.dumps(user_info))
 	else:
 		return render(request, 'locator_cam_app/login.html', {})
 
@@ -79,19 +95,47 @@ def user_login(request):
 def search_user(request):
 	users = []
 	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
 		username = request.POST.get('username')
 		users = User.objects.filter(username__icontains=username)
+		if content_type == 'JSON':
+			res_json = {
+				'users': [user.username for user in users]
+			}
+			return HttpResponse(json.dumps(res_json))
+
 	return render(request, 'locator_cam_app/search_user.html', {'users': users})	
 
 @login_required
 def add_friend(request):
 	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
 		other_user_name = request.POST.get('username')
 		other_user = User.objects.get(username=other_user_name)
 		this_user = request.user
+		if this_user == other_user:
+			# adding the user itself as its friend is not allowed
+			return HttpResponse(json.dumps({'message': 'error'})) if content_type == 'JSON' else HttpResponse('error')
 		this_user.userprofile.friends.add(other_user.userprofile)
-		return HttpResponse("{0:s} became your friend!".format(other_user_name))
+		message = "{0:s} became your friend!".format(other_user_name)
+		return HttpResponse(json.dumps({'message': message})) if content_type == 'JSON' else HttpResponse(message)
 	return redirect('/locator-cam/')
+
+@login_required
+def number_of_friends(request):
+	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
+		number_of_friends = User.objects.get(username=request.user.username).userprofile.friends.count()
+		return HttpResponse(json.dumps({'number_of_friends': number_of_friends})) if content_type == 'JSON' else HttpResponse(number_of_friends)
+	return HttpResponse('This API only supports POST request')
+
+@login_required
+def get_all_friends(request):
+	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
+		friends = [friend.user.username for friend in request.user.userprofile.friends.all()]
+		return HttpResponse(json.dumps({'friends': friends})) if content_type == 'JSON' else HttpResponse(friends)
+	return HttpResponse('This API only supports POST request')
 
 @login_required
 def logout_user(request):
