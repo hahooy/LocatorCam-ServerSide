@@ -17,9 +17,9 @@ class UserProfileForm(forms.ModelForm):
 class PhotoForm(forms.ModelForm):
 	class Meta:
 		model = Photo
-		fields = ('photo',)
+		fields = ('photo_base64',)
 
 class MomentForm(forms.ModelForm):
 	class Meta:
 		model = Moment
-		fields = ('description', 'latitude', 'longitude', 'thumbnail')
+		fields = ('description', 'latitude', 'longitude', 'thumbnail_base64')

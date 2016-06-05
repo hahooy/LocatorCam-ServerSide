@@ -19,7 +19,7 @@ def index(request):
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()		
 		all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))
-		all_moments_urls = [moment.thumbnail.url + ' ' + str(moment.pub_time) for moment in all_moments]
+		# all_moments_urls = [moment.thumbnail.url + ' ' + str(moment.pub_time) for moment in all_moments]
 		return render(request, 'locator_cam_app/index.html', {'moments': all_moments})
 	else:
 		print('user is none')
@@ -145,32 +145,37 @@ def logout_user(request):
 @login_required
 def unfriend(request):
 	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
 		user = request.user
 		username_to_unfriend = request.POST.get('username')
 		user_to_unfriend = UserProfile.objects.get(user__username=username_to_unfriend)
 		user.userprofile.friends.remove(user_to_unfriend)
-		messages.add_message(request, messages.INFO, 'You unfriended {0:s}'.format(username_to_unfriend))
-		return redirect('/locator-cam')
+		message = 'You unfriended {0:s}'.format(username_to_unfriend)
+		messages.add_message(request, messages.INFO, message)
+		return HttpResponse(json.dumps({'message': message})) if content_type == 'JSON' else redirect('/locator-cam')
 	else:
-		return redirect('404')
+		return HttpResponse('This API only supports POST request')
 
 @login_required
 def upload_moment(request):
 	if request.method == 'POST':
-		photo_form = PhotoForm(request.POST, request.FILES)
-		moment_form = MomentForm(request.POST, request.FILES)
-
-		if photo_form.is_valid() and moment_form.is_valid():
-
-			moment = moment_form.save(commit=False)
-			moment.user = request.user
-			moment.save()
-			photo = photo_form.save(commit=False)
-			photo.moment = moment
-			photo.save()
-			return HttpResponse('Your moment has been uploaded successfully')
+		if request.POST.get('content_type') == 'JSON':
+			pass
 		else:
-			print('{0:}\n{1:}'.format(photo_form.errors, moment_form.errors))
+			photo_form = PhotoForm(request.POST, request.FILES)
+			moment_form = MomentForm(request.POST, request.FILES)
+
+			if photo_form.is_valid() and moment_form.is_valid():
+
+				moment = moment_form.save(commit=False)
+				moment.user = request.user
+				moment.save()
+				photo = photo_form.save(commit=False)
+				photo.moment = moment
+				photo.save()
+				return HttpResponse('Your moment has been uploaded successfully')
+			else:
+				print('{0:}\n{1:}'.format(photo_form.errors, moment_form.errors))
 
 	else:
 		photo_form = PhotoForm()

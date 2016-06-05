@@ -38,7 +38,7 @@
 	{% if moments %}
 	<ul>
 		{% for moment in moments %}
-		<li>Description: {{moment.description}}, Url: {{ moment.thumbnail.url }}, publication date: {{ moment.pub_time }}</li>
+		<li>Description: {{moment.description}}, <!--Url: {{ moment.thumbnail.url }}, -->publication date: {{ moment.pub_time }}</li>
 		{% if moment.user == user %}
 		<form method="post" action="/locator-cam/delete-moment/">
 			<input type="hidden" name="pk" value="{{ moment.pk }}">

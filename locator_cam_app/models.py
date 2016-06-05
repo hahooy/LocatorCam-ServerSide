@@ -10,8 +10,8 @@ class Moment(models.Model):
 	longitude = models.FloatField()
 	user = models.ForeignKey(User)
 	#photo = models.OneToOneField(Photo)
-	thumbnail = models.ImageField(upload_to='thumbnail_images', blank=True)
-	#thumbnail_base64 = models.TextField()
+	#thumbnail = models.ImageField(upload_to='thumbnail_images', blank=True)
+	thumbnail_base64 = models.TextField(blank=True, null=True)
 	pub_time = models.DateTimeField(db_index=True, auto_now_add=True)
 
 	class Meta:
@@ -21,9 +21,9 @@ class Moment(models.Model):
 		return self.description
 
 class Photo(models.Model):
-	photo = models.ImageField(upload_to='moment_images', blank=True)
+	#photo = models.ImageField(upload_to='moment_images', blank=True)
 	moment = models.OneToOneField(Moment)
-	#base64_image_str = models.TextField()
+	photo_base64 = models.TextField(blank=True, null=True)
 
 	def __str__(self):
 		return self.photo.url
