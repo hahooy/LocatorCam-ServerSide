@@ -8,6 +8,7 @@ from django.db.models import Q
 from locator_cam_app.forms import UserForm, UserProfileForm, PhotoForm, MomentForm
 from locator_cam_app.models import UserProfile, Moment
 
+
 import json
 
 
@@ -159,23 +160,24 @@ def unfriend(request):
 @login_required
 def upload_moment(request):
 	if request.method == 'POST':
-		if request.POST.get('content_type') == 'JSON':
-			pass
+		photo_form = PhotoForm(request.POST, request.FILES)
+		moment_form = MomentForm(request.POST, request.FILES)
+
+		if photo_form.is_valid() and moment_form.is_valid():
+			moment = moment_form.save(commit=False)
+			moment.user = request.user
+			moment.save()
+			photo = photo_form.save(commit=False)
+			photo.moment = moment
+			photo.save()
+			message = 'Your moment has been uploaded successfully'
 		else:
-			photo_form = PhotoForm(request.POST, request.FILES)
-			moment_form = MomentForm(request.POST, request.FILES)
+			message = '{0:}\n{1:}'.format(photo_form.errors, moment_form.errors)
 
-			if photo_form.is_valid() and moment_form.is_valid():
-
-				moment = moment_form.save(commit=False)
-				moment.user = request.user
-				moment.save()
-				photo = photo_form.save(commit=False)
-				photo.moment = moment
-				photo.save()
-				return HttpResponse('Your moment has been uploaded successfully')
-			else:
-				print('{0:}\n{1:}'.format(photo_form.errors, moment_form.errors))
+		if request.POST.get('content_type') == 'JSON':
+			return HttpResponse(json.dumps({ 'message': message }))
+		else:
+			return HttpResponse(message)
 
 	else:
 		photo_form = PhotoForm()
@@ -184,12 +186,51 @@ def upload_moment(request):
 	return render(request, 'locator_cam_app/upload_moment.html', {'photo_form': photo_form, 'moment_form': moment_form})
 
 @login_required
+def fetch_moments(request):
+	DEFAULT_QUERY_LIMIT = 10
+	if request.method == 'POST':
+		time_interval = request.POST.get('time_interval')
+		query_limit = request.POST.get('query_limit') or DEFAULT_QUERY_LIMIT
+		my_profile = request.user.userprofile
+		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
+		if time_interval is not None:
+			time_interval_float = float(time_interval)
+			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=time_interval), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+		else:
+			all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+		if request.POST.get('content_type') == 'JSON':
+			moments_json = [{
+				'id': moment.id,
+				'username': moment.user.username,
+				"description": moment.description,
+				"latitude": moment.latitude,
+				"longitude": moment.longitude,
+				"pub_time_interval": moment.pub_time_interval,
+				"thumbnail_base64": moment.thumbnail_base64
+			} for moment in all_moments]
+			return HttpResponse(json.dumps(moments_json))
+		else:
+			return render(request, 'locator_cam_app/index.html', {'moments': all_moments})
+	else:
+		return HttpResponse('This API only supports POST request')
+
+@login_required
 def delete_moment(request):
 	if request.method == 'POST':
 		Moment.objects.get(pk=request.POST.get('pk')).delete()
 		return HttpResponse('moment deleted')
 	else:
 		return HttpResponseForbidden('Only support POST request.')
+
+@login_required
+def fetch_photo(request):
+	if request.method == 'POST':
+		content_type = request.POST.get('content_type')
+		moment_id = request.POST.get('moment_id')
+		photo_base64 = Moment.objects.get(pk=moment_id).photo.photo_base64
+		return HttpResponse(json.dumps({'photo_base64': photo_base64})) if content_type == 'JSON' else HttpResponse(photo_base64)
+	else:
+		return HttpResponse('This API only supports POST request')	
 
 
 
