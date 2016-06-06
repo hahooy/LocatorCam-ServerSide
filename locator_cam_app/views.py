@@ -195,7 +195,7 @@ def fetch_moments(request):
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
 		if time_interval is not None:
 			time_interval_float = float(time_interval)
-			all_moments = Moment.objects.filter(Q(pub_time_interval__lte=time_interval), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=time_interval), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		else:
 			all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		if request.POST.get('content_type') == 'JSON':
