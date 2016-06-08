@@ -205,6 +205,8 @@ def fetch_moments(request):
 			starting_time_float = float(starting_time)
 			print(starting_time_float)
 			all_moments = Moment.objects.filter(Q(pub_time_interval__gt=starting_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+			if len(all_moments) > 0:
+				print(all_moments[0].pub_time_interval)
 		else:
 			all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		if request.POST.get('content_type') == 'JSON':
