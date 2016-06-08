@@ -203,6 +203,7 @@ def fetch_moments(request):
 			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=ending_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		elif starting_time is not None:
 			starting_time_float = float(starting_time)
+			print(starting_time_float)
 			all_moments = Moment.objects.filter(Q(pub_time_interval__gt=starting_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		else:
 			all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
