@@ -189,13 +189,21 @@ def upload_moment(request):
 def fetch_moments(request):
 	DEFAULT_QUERY_LIMIT = 10
 	if request.method == 'POST':
-		time_interval = request.POST.get('time_interval')
+		starting_time = request.POST.get('starting_time') # fetch moments published later than this time
+		ending_time = request.POST.get('ending_time') # fetch moments published earlier than this time
 		query_limit = request.POST.get('query_limit') or DEFAULT_QUERY_LIMIT
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
-		if time_interval is not None:
-			time_interval_float = float(time_interval)
-			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=time_interval), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+		if ending_time is not None and starting_time is not None:
+			ending_time_float = float(ending_time)
+			starting_time_float = float(starting_time)
+			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=ending_time), Q(pub_time_interval__gt=starting_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+		elif ending_time is not None:
+			ending_time_float = float(ending_time)
+			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=ending_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+		elif starting_time is not None:
+			starting_time_float = float(starting_time)
+			all_moments = Moment.objects.filter(Q(pub_time_interval__gt=starting_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		else:
 			all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		if request.POST.get('content_type') == 'JSON':
