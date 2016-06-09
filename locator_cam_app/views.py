@@ -189,27 +189,50 @@ def upload_moment(request):
 def fetch_moments(request):
 	DEFAULT_QUERY_LIMIT = 10
 	if request.method == 'POST':
-		starting_time = request.POST.get('starting_time') # fetch moments published later than this time
-		ending_time = request.POST.get('ending_time') # fetch moments published earlier than this time
-		query_limit = request.POST.get('query_limit') or DEFAULT_QUERY_LIMIT
+		CONTENT_TYPE = request.META.get('CONTENT_TYPE')
+		if 'application/json' in CONTENT_TYPE and 'charset=utf-8' in CONTENT_TYPE:
+			# the request is in JSON format and encoded in utf-8
+			json_data = json.loads(request.body.decode('utf-8'))
+			published_later_than = json_data.get('published_later_than')
+			published_earlier_than = json_data.get('published_earlier_than')
+			query_limit = json_data.get('query_limit') or DEFAULT_QUERY_LIMIT
+			existing_moments_id = json_data.get('existing_moments_id')
+			response_content_type = json_data.get('content_type')
+		else:
+			# fetch moments published later than the latest moment in the front end
+			published_later_than = request.POST.get('published_later_than') 
+			# fetch moments published earlier than the earliest moment in the front end
+			published_earlier_than = request.POST.get('published_earlier_than') 
+			# the limit of how many moments we want to fetch
+			query_limit = request.POST.get('query_limit') or DEFAULT_QUERY_LIMIT
+			# moments that already exist in the front end
+			existing_moments_id = json.loads(request.POST.get('existing_moments_id'))
+			response_content_type = request.POST.get('content_type')
+
+		latest_moment_pub_time = None
+		earlist_moment_pub_time = None
+
+		if len(existing_moments_id) > 0 and published_later_than == 'True':
+			latest_moment_pub_time = Moment.objects.get(pk=existing_moments_id[0]).pub_time
+		if len(existing_moments_id) > 0 and published_earlier_than == 'True':
+			earlist_moment_pub_time = Moment.objects.get(pk=existing_moments_id[-1]).pub_time
+
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
-		if ending_time is not None and starting_time is not None:
-			ending_time_float = float(ending_time)
-			starting_time_float = float(starting_time)
-			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=ending_time), Q(pub_time_interval__gt=starting_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
-		elif ending_time is not None:
-			ending_time_float = float(ending_time)
-			all_moments = Moment.objects.filter(Q(pub_time_interval__lt=ending_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
-		elif starting_time is not None:
-			starting_time_float = float(starting_time)
-			print(starting_time_float)
-			all_moments = Moment.objects.filter(Q(pub_time_interval__gt=starting_time), Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
-			if len(all_moments) > 0:
-				print(all_moments[0].pub_time_interval)
+
+		if latest_moment_pub_time is not None:
+			all_moments = Moment.objects.exclude(pk__in=existing_moments_id).\
+			filter(Q(pub_time__gte=latest_moment_pub_time), \
+			Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+		elif earlist_moment_pub_time is not None:
+			all_moments = Moment.objects.exclude(pk__in=existing_moments_id).\
+			filter(Q(pub_time__lte=earlist_moment_pub_time), \
+			Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		else:
-			all_moments = Moment.objects.filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
-		if request.POST.get('content_type') == 'JSON':
+			all_moments = Moment.objects.exclude(pk__in=existing_moments_id).\
+			filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
+
+		if response_content_type == 'JSON':
 			moments_json = [{
 				'id': moment.id,
 				'username': moment.user.username,
