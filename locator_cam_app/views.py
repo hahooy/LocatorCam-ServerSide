@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
-from locator_cam_app.forms import UserForm, UserProfileForm, PhotoForm, MomentForm
+from locator_cam_app.forms import UserForm, UserProfileForm, MomentPhotoForm, MomentThumbnailForm, MomentForm
 from locator_cam_app.models import UserProfile, Moment
 
 
@@ -160,16 +160,20 @@ def unfriend(request):
 @login_required
 def upload_moment(request):
 	if request.method == 'POST':
-		photo_form = PhotoForm(request.POST, request.FILES)
+		photo_form = MomentPhotoForm(request.POST, request.FILES)
+		thumbnail_form = MomentThumbnailForm(request.POST, request.FILES)
 		moment_form = MomentForm(request.POST, request.FILES)
 
-		if photo_form.is_valid() and moment_form.is_valid():
+		if photo_form.is_valid() and thumbnail_form.is_valid() and moment_form.is_valid():
 			moment = moment_form.save(commit=False)
 			moment.user = request.user
 			moment.save()
 			photo = photo_form.save(commit=False)
 			photo.moment = moment
 			photo.save()
+			thumbnail = thumbnail_form.save(commit=False)
+			thumbnail.moment = moment
+			thumbnail.save()
 			message = 'Your moment has been uploaded successfully'
 		else:
 			message = '{0:}\n{1:}'.format(photo_form.errors, moment_form.errors)
@@ -180,42 +184,44 @@ def upload_moment(request):
 			return HttpResponse(message)
 
 	else:
-		photo_form = PhotoForm()
+		photo_form = MomentPhotoForm()
+		thumbnail_form = MomentThumbnailForm()
 		moment_form = MomentForm()
 
-	return render(request, 'locator_cam_app/upload_moment.html', {'photo_form': photo_form, 'moment_form': moment_form})
+	return render(request, 'locator_cam_app/upload_moment.html', {'photo_form': photo_form, 'thumbnail_form': thumbnail_form, 'moment_form': moment_form})
 
 @login_required
 def fetch_moments(request):
 	DEFAULT_QUERY_LIMIT = 10
 	if request.method == 'POST':
 		CONTENT_TYPE = request.META.get('CONTENT_TYPE')
+		HTTP_ACCEPT = request.META.get('HTTP_ACCEPT')
+
 		if 'application/json' in CONTENT_TYPE and 'charset=utf-8' in CONTENT_TYPE:
 			# the request is in JSON format and encoded in utf-8
 			json_data = json.loads(request.body.decode('utf-8'))
-			published_later_than = json_data.get('published_later_than')
-			published_earlier_than = json_data.get('published_earlier_than')
-			query_limit = json_data.get('query_limit') or DEFAULT_QUERY_LIMIT
-			existing_moments_id = json_data.get('existing_moments_id')
-			response_content_type = json_data.get('content_type')
-		else:
 			# fetch moments published later than the latest moment in the front end
-			published_later_than = request.POST.get('published_later_than') 
+			published_later_than = json_data.get('published_later_than')
 			# fetch moments published earlier than the earliest moment in the front end
-			published_earlier_than = request.POST.get('published_earlier_than') 
+			published_earlier_than = json_data.get('published_earlier_than')
 			# the limit of how many moments we want to fetch
-			query_limit = request.POST.get('query_limit') or DEFAULT_QUERY_LIMIT
+			query_limit = json_data.get('query_limit') or DEFAULT_QUERY_LIMIT
 			# moments that already exist in the front end
+			existing_moments_id = json_data.get('existing_moments_id')
+		else:
+			published_later_than = request.POST.get('published_later_than') 
+			published_earlier_than = request.POST.get('published_earlier_than') 
+			query_limit = request.POST.get('query_limit') or DEFAULT_QUERY_LIMIT
 			existing_moments_id = json.loads(request.POST.get('existing_moments_id'))
-			response_content_type = request.POST.get('content_type')
 
 		latest_moment_pub_time = None
 		earlist_moment_pub_time = None
 
-		if len(existing_moments_id) > 0 and published_later_than == 'True':
-			latest_moment_pub_time = Moment.objects.get(pk=existing_moments_id[0]).pub_time
-		if len(existing_moments_id) > 0 and published_earlier_than == 'True':
-			earlist_moment_pub_time = Moment.objects.get(pk=existing_moments_id[-1]).pub_time
+		if len(existing_moments_id) > 0:
+			if published_later_than or published_later_than == 'True':
+				latest_moment_pub_time = Moment.objects.get(pk=existing_moments_id[0]).pub_time
+			if published_earlier_than or published_earlier_than == 'True':
+				earlist_moment_pub_time = Moment.objects.get(pk=existing_moments_id[-1]).pub_time
 
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
@@ -232,7 +238,7 @@ def fetch_moments(request):
 			all_moments = Moment.objects.exclude(pk__in=existing_moments_id).\
 			filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 
-		if response_content_type == 'JSON':
+		if HTTP_ACCEPT == 'application/json':
 			moments_json = [{
 				'id': moment.id,
 				'username': moment.user.username,
@@ -240,7 +246,7 @@ def fetch_moments(request):
 				"latitude": moment.latitude,
 				"longitude": moment.longitude,
 				"pub_time_interval": moment.pub_time_interval,
-				"thumbnail_base64": moment.thumbnail_base64
+				"thumbnail_base64": moment.momentthumbnail.thumbnail_base64
 			} for moment in all_moments]
 			return HttpResponse(json.dumps(moments_json))
 		else:
@@ -261,7 +267,7 @@ def fetch_photo(request):
 	if request.method == 'POST':
 		content_type = request.POST.get('content_type')
 		moment_id = request.POST.get('moment_id')
-		photo_base64 = Moment.objects.get(pk=moment_id).photo.photo_base64
+		photo_base64 = Moment.objects.get(pk=moment_id).momentphoto.photo_base64
 		return HttpResponse(json.dumps({'photo_base64': photo_base64})) if content_type == 'JSON' else HttpResponse(photo_base64)
 	else:
 		return HttpResponse('This API only supports POST request')	

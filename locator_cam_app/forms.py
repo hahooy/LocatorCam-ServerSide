@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from locator_cam_app.models import UserProfile, Photo, Moment
+from locator_cam_app.models import UserProfile, MomentPhoto, MomentThumbnail, Moment
 
 class UserForm(forms.ModelForm):
 	password = forms.CharField(widget=forms.PasswordInput)
@@ -14,12 +14,17 @@ class UserProfileForm(forms.ModelForm):
 		model = UserProfile
 		fields = ('picture',)
 
-class PhotoForm(forms.ModelForm):
+class MomentPhotoForm(forms.ModelForm):
 	class Meta:
-		model = Photo
+		model = MomentPhoto
 		fields = ('photo_base64',)
 
 class MomentForm(forms.ModelForm):
 	class Meta:
 		model = Moment
-		fields = ('description', 'latitude', 'longitude', 'thumbnail_base64', 'pub_time_interval')
+		fields = ('description', 'latitude', 'longitude', 'pub_time_interval')
+
+class MomentThumbnailForm(forms.ModelForm):
+	class Meta:
+		model = MomentThumbnail
+		fields = ('thumbnail_base64',)

@@ -9,6 +9,7 @@
 		{% csrf_token %}
 
 		{{ photo_form.as_p }}
+		{{ thumbnail_form.as_p }}
 		{{ moment_form.as_p }}
 		<input type="submit" name="submit" value="upload">
 	</form>
