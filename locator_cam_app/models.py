@@ -6,10 +6,9 @@ import hashlib
 
 class Moment(models.Model):
 	description = models.TextField(default='', blank=True, null=True)
-	latitude = models.FloatField()
-	longitude = models.FloatField()
+	latitude = models.FloatField(blank=True, null=True)
+	longitude = models.FloatField(blank=True, null=True)
 	user = models.ForeignKey(User)
-	#thumbnail_base64 = models.TextField(blank=True, null=True)
 	pub_time_interval = models.FloatField(db_index=True, blank=True, null=True)
 	pub_time = models.DateTimeField(db_index=True, auto_now_add=True, blank=True, null=True)
 
