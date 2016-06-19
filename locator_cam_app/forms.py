@@ -22,7 +22,7 @@ class MomentPhotoForm(forms.ModelForm):
 class MomentForm(forms.ModelForm):
 	class Meta:
 		model = Moment
-		fields = ('description', 'latitude', 'longitude', 'pub_time_interval')
+		fields = ('description', 'latitude', 'longitude', 'pub_time_interval', 'channel')
 
 class MomentThumbnailForm(forms.ModelForm):
 	class Meta:

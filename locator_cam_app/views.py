@@ -165,9 +165,16 @@ def upload_moment(request):
 		moment_form = MomentForm(request.POST, request.FILES)
 
 		if photo_form.is_valid() and thumbnail_form.is_valid() and moment_form.is_valid():
+			# upload the moment
 			moment = moment_form.save(commit=False)
 			moment.user = request.user
+			channel_id = request.POST.get('channel_id')
+			if channel_id is not None:
+				print(type(channel_id))
+				channel_id_int = int(channel_id)
+				moment.channel = Channel.objects.get(pk=channel_id_int)
 			moment.save()
+			# upload photo and thumbnail
 			photo = photo_form.save(commit=False)
 			photo.moment = moment
 			photo.save()
@@ -208,6 +215,8 @@ def fetch_moments(request):
 			query_limit = json_data.get('query_limit') or DEFAULT_QUERY_LIMIT
 			# moments that already exist in the front end
 			existing_moments_id = json_data.get('existing_moments_id')
+			# which channel 
+			channel_id = json_data.get('channel_id')
 		else:
 			published_later_than = request.POST.get('published_later_than') 
 			published_earlier_than = request.POST.get('published_earlier_than') 
@@ -226,16 +235,24 @@ def fetch_moments(request):
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
 
+		# if there is a channel, get a moment query set for the channel
+		if channel_id is not None:
+			print(type(channel_id))
+			channel_id_int = int(channel_id)
+			all_moments = Moment.objects.filter(channel__id=channel_id)
+		else:
+			all_moments = Moment.objects.all()
+
 		if latest_moment_pub_time is not None:
-			all_moments = Moment.objects.exclude(pk__in=existing_moments_id).\
+			all_moments = all_moments.exclude(pk__in=existing_moments_id).\
 			filter(Q(pub_time__gte=latest_moment_pub_time), \
 			Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		elif earlist_moment_pub_time is not None:
-			all_moments = Moment.objects.exclude(pk__in=existing_moments_id).\
+			all_moments = all_moments.exclude(pk__in=existing_moments_id).\
 			filter(Q(pub_time__lte=earlist_moment_pub_time), \
 			Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		else:
-			all_moments = Moment.objects.exclude(pk__in=existing_moments_id).\
+			all_moments = all_moments.exclude(pk__in=existing_moments_id).\
 			filter(Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 
 		if HTTP_ACCEPT == 'application/json':
@@ -278,10 +295,22 @@ def fetch_channels(request):
 	channels = profile.membership_channels.all()
 	channels_json = [{
 						'channel_id': channel.id,
-						'channel_name': channel.name
+						'channel_name': channel.name,
+						'description': channel.description,
+						'num_members': channel.members.count(),
+						'num_admins': channel.administrators.count()
 						} 
 					for channel in channels]
 	return HttpResponse(json.dumps(channels_json))
+
+
+@login_required
+def fetch_channels_count(request):
+	profile = UserProfile.objects.get(user=request.user)
+	channels_count = profile.membership_channels.count()
+	channels_count_json = {'channels_count': channels_count}
+	print(channels_count)
+	return HttpResponse(json.dumps(channels_count_json))
 
 
 @login_required

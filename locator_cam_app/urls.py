@@ -17,6 +17,7 @@ urlpatterns = [
 	url(r'^number-of-friends/$', views.number_of_friends, name='number-of-friends'),
 	url(r'^get-all-friends/$', views.get_all_friends, name='get-all-friends'),
 	url(r'^fetch-channels/$', views.fetch_channels, name='fetch-channels'),
+	url(r'^fetch-channels-count/$', views.fetch_channels_count, name='fetch-channels-count'),
 	url(r'^create-channel/$', views.create_channel, name='create-channel'),
 	url(r'^add-member-to-channel/$', views.add_member_to_channel, name='create-channel'),
 	url(r'^get-channel-members/$', views.get_channel_members, name='get-channel-members')
