@@ -1,12 +1,12 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, HttpResponseNotFound
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from locator_cam_app.forms import UserForm, UserProfileForm, MomentPhotoForm, MomentThumbnailForm, MomentForm
-from locator_cam_app.models import UserProfile, Moment
+from locator_cam_app.models import UserProfile, Moment, Channel
 
 
 import json
@@ -272,12 +272,71 @@ def fetch_photo(request):
 	else:
 		return HttpResponse('This API only supports POST request')	
 
+@login_required
+def fetch_channels(request):
+	profile = UserProfile.objects.get(user=request.user)
+	channels = profile.membership_channels.all()
+	channels_json = [{
+						'channel_id': channel.id,
+						'channel_name': channel.name
+						} 
+					for channel in channels]
+	return HttpResponse(json.dumps(channels_json))
 
 
+@login_required
+def create_channel(request):
+	if request.method == 'POST' and 'application/json' in request.META.get('CONTENT_TYPE'):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_name = json_data.get('channel_name')
+		if Channel.objects.filter(name=channel_name).count() > 0:
+			message = 'The channel name exists, please choose another one'
+		else:
+			channel = Channel(name=channel_name, user_created=request.user.userprofile)
+			channel.save()
+			channel.members.add(request.user.userprofile)
+			channel.administrators.add(request.user.userprofile)
+			channel.save()
+			message = 'Channel {0:s} was created successfully'.format(channel_name)
+		return HttpResponse(json.dumps({'message': message}))
+	else:
+		return HttpResponseNotFound()
 
 
+@login_required
+def add_member_to_channel(request):
+	if request.method == 'POST' and 'application/json' in request.META.get('CONTENT_TYPE'):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = int(json_data.get('channel_id'))
+		username_to_be_added = json_data.get('username_to_be_added')
+		channel = get_object_or_404(Channel, pk=channel_id)
+		user_to_be_added = get_object_or_404(UserProfile, user__username=username_to_be_added)
+
+		if request.user.userprofile in channel.administrators.all():
+			channel.members.add(user_to_be_added)
+			message = 'User {0:s} became a member of channel {1:s}'.format(username_to_be_added, channel.name)
+		else:
+			message = 'Error: you are not the administrator of this channel'
+		return HttpResponse(json.dumps({'message': message}))
+	else:
+		return HttpResponseNotFound()
 
 
+@login_required
+def get_channel_members(request):
+	if request.method == 'POST' and 'application/json' in request.META.get('CONTENT_TYPE'):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = int(json_data.get('channel_id'))		
+		channel = get_object_or_404(Channel, pk=channel_id)
+		members = channel.members.all()
+		if request.user.userprofile in members:
+			members = [member.user.username for member in members]
+			return HttpResponse(json.dumps({'members': members}))
+		else:
+			message = 'Error: you are not a member of this channel'
+			return HttpResponse(json.dumps({'message': message}))
+	else:
+		return HttpResponseNotFound()
 
 
 
