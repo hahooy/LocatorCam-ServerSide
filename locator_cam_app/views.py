@@ -318,10 +318,11 @@ def create_channel(request):
 	if request.method == 'POST' and 'application/json' in request.META.get('CONTENT_TYPE'):
 		json_data = json.loads(request.body.decode('utf-8'))
 		channel_name = json_data.get('channel_name')
+		channel_description = json_data.get('channel_description') if json_data.get('channel_description') is not None else ''
 		if Channel.objects.filter(name=channel_name).count() > 0:
 			message = 'The channel name exists, please choose another one'
 		else:
-			channel = Channel(name=channel_name, user_created=request.user.userprofile)
+			channel = Channel(name=channel_name, user_created=request.user.userprofile, description=channel_description)
 			channel.save()
 			channel.members.add(request.user.userprofile)
 			channel.administrators.add(request.user.userprofile)

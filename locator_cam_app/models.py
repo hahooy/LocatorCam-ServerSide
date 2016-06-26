@@ -15,11 +15,12 @@ class UserProfile(models.Model):
 
 class Channel(models.Model):
 	name = models.CharField(max_length=256)
-	description = models.TextField(blank=True, null=True)
+	description = models.TextField()
 	time_created = models.DateTimeField(auto_now_add=True)
 	user_created = models.ForeignKey(UserProfile)
 	administrators = models.ManyToManyField(UserProfile, related_name='admin_channels')
 	members = models.ManyToManyField(UserProfile, related_name='membership_channels')
+	is_private_channel = models.BooleanField(default=True)
 
 	def __str__(self):
 		return '{0:s} ({1:s})'.format(self.name, self.user_created.user.username)
