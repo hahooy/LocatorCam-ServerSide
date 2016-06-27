@@ -19,6 +19,11 @@ urlpatterns = [
 	url(r'^fetch-channels/$', views.fetch_channels, name='fetch-channels'),
 	url(r'^fetch-channels-count/$', views.fetch_channels_count, name='fetch-channels-count'),
 	url(r'^create-channel/$', views.create_channel, name='create-channel'),
-	url(r'^add-member-to-channel/$', views.add_member_to_channel, name='create-channel'),
-	url(r'^get-channel-members/$', views.get_channel_members, name='get-channel-members')
+	url(r'^add-member-to-channel/$', views.add_member_to_channel, name='add-member-to-channel'),
+	url(r'^add-administrator-to-channel/$', views.add_administrator_to_channel, name='add-administrator-to-channel/'),
+	url(r'^get-channel-members/$', views.get_channel_members, name='get-channel-members'),
+	url(r'^get-channel-administrators/$', views.get_channel_administrators, name='get-channel-administrators'),
+	url(r'^remove-member-from-channel/$', views.remove_member_from_channel, name='remove-member-from-channel'),
+	url(r'^remove-administrator-from-channel/$', views.remove_administrator_from_channel, name='remove-administrator-from-channel'),
+	url(r'^delete-channel/$', views.delete_channel, name='delete-channel')
 ]

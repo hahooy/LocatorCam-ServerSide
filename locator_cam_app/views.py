@@ -1,3 +1,6 @@
+import re
+import json
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, HttpResponseNotFound
 from django.contrib.auth import authenticate, login, logout
@@ -7,9 +10,6 @@ from django.contrib import messages
 from django.db.models import Q
 from locator_cam_app.forms import UserForm, UserProfileForm, MomentPhotoForm, MomentThumbnailForm, MomentForm
 from locator_cam_app.models import UserProfile, Moment, Channel
-
-
-import json
 
 
 # Create your views here.
@@ -170,7 +170,6 @@ def upload_moment(request):
 			moment.user = request.user
 			channel_id = request.POST.get('channel_id')
 			if channel_id is not None:
-				print(type(channel_id))
 				channel_id_int = int(channel_id)
 				moment.channel = Channel.objects.get(pk=channel_id_int)
 			moment.save()
@@ -204,7 +203,8 @@ def fetch_moments(request):
 		CONTENT_TYPE = request.META.get('CONTENT_TYPE')
 		HTTP_ACCEPT = request.META.get('HTTP_ACCEPT')
 
-		if 'application/json' in CONTENT_TYPE and 'charset=utf-8' in CONTENT_TYPE:
+		if re.search('application/json', CONTENT_TYPE, re.IGNORECASE) and \
+			re.search('charset=utf-8', CONTENT_TYPE, re.IGNORECASE):
 			# the request is in JSON format and encoded in utf-8
 			json_data = json.loads(request.body.decode('utf-8'))
 			# fetch moments published later than the latest moment in the front end
@@ -237,7 +237,6 @@ def fetch_moments(request):
 
 		# if there is a channel, get a moment query set for the channel
 		if channel_id is not None:
-			print(type(channel_id))
 			channel_id_int = int(channel_id)
 			all_moments = Moment.objects.filter(channel__id=channel_id)
 		else:
@@ -309,13 +308,12 @@ def fetch_channels_count(request):
 	profile = UserProfile.objects.get(user=request.user)
 	channels_count = profile.membership_channels.count()
 	channels_count_json = {'channels_count': channels_count}
-	print(channels_count)
 	return HttpResponse(json.dumps(channels_count_json))
 
 
 @login_required
 def create_channel(request):
-	if request.method == 'POST' and 'application/json' in request.META.get('CONTENT_TYPE'):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
 		json_data = json.loads(request.body.decode('utf-8'))
 		channel_name = json_data.get('channel_name')
 		channel_description = json_data.get('channel_description') if json_data.get('channel_description') is not None else ''
@@ -335,7 +333,7 @@ def create_channel(request):
 
 @login_required
 def add_member_to_channel(request):
-	if request.method == 'POST' and 'application/json' in request.META.get('CONTENT_TYPE'):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
 		json_data = json.loads(request.body.decode('utf-8'))
 		channel_id = int(json_data.get('channel_id'))
 		username_to_be_added = json_data.get('username_to_be_added')
@@ -353,8 +351,29 @@ def add_member_to_channel(request):
 
 
 @login_required
+def add_administrator_to_channel(request):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = int(json_data.get('channel_id'))
+		username_to_be_added = json_data.get('username_to_be_added')
+		channel = get_object_or_404(Channel, pk=channel_id)
+		user_to_be_added = get_object_or_404(UserProfile, user__username=username_to_be_added)
+
+		if request.user.userprofile in channel.administrators.all():
+			channel.administrators.add(user_to_be_added)
+			# an administrator becomes a member automatically
+			channel.members.add(user_to_be_added)
+			message = 'User {0:s} became an administrator of channel {1:s}'.format(username_to_be_added, channel.name)
+		else:
+			message = 'Only administrators of this channel are allowed to add an administrator'
+		return HttpResponse(json.dumps({'message': message}))
+	else:
+		return HttpResponseNotFound()
+
+
+@login_required
 def get_channel_members(request):
-	if request.method == 'POST' and 'application/json' in request.META.get('CONTENT_TYPE'):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
 		json_data = json.loads(request.body.decode('utf-8'))
 		channel_id = int(json_data.get('channel_id'))		
 		channel = get_object_or_404(Channel, pk=channel_id)
@@ -363,11 +382,84 @@ def get_channel_members(request):
 			members = [member.user.username for member in members]
 			return HttpResponse(json.dumps({'members': members}))
 		else:
-			message = 'Error: you are not a member of this channel'
+			message = 'Error: you are not a member of this channel.'
 			return HttpResponse(json.dumps({'message': message}))
 	else:
 		return HttpResponseNotFound()
 
 
+@login_required
+def get_channel_administrators(request):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = json_data.get('channel_id')
+		channel = get_object_or_404(Channel, pk=channel_id)
 
+		if request.user.userprofile in channel.members.all():
+			administrators = [administrator.user.username for administrator in channel.administrators.all()]
+			return HttpResponse(json.dumps({'administrators': administrators}))
+		else:
+			message = 'Error: you are not a member of this channel.'
+			return HttpResponse(json.dumps({'message': message}))
+	else:
+		return HttpResponseNotFound()
+
+
+@login_required
+def remove_member_from_channel(request):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = json_data.get('channel_id')
+		member_username = json_data.get('member_username')
+		channel = get_object_or_404(Channel, pk=channel_id)
+		member_to_be_removed = get_object_or_404(UserProfile, user__username=member_username)
+
+		if request.user.userprofile in channel.administrators.all():
+			channel.members.remove(member_to_be_removed)
+			message = '{0:s} has been removed from the members of channel {1:s}'.format(member_username, channel.name)
+		else:
+			message = 'Only administrators of this channel are allowed to remove members.'
+
+		return HttpResponse(json.dumps({'message': message}))
+
+	else:
+		return HttpResponseNotFound()
+
+
+@login_required
+def remove_administrator_from_channel(request):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = json_data.get('channel_id')
+		administrator_username = json_data.get('administrator_username')
+		channel = get_object_or_404(Channel, pk=channel_id)
+		administrator_to_be_removed = get_object_or_404(UserProfile, user__username=administrator_username)
+
+		if request.user.userprofile in channel.administrators.all():
+			channel.administrators.remove(administrator_to_be_removed)
+			message = '{0:s} has been removed from the administrators of channel {1:s}'.format(administrator_username, channel.name)
+		else:
+			message = 'Only administrators of this channel are allowed to remove administrators.'
+
+		return HttpResponse(json.dumps({'message': message}))
+
+	else:
+		return HttpResponseNotFound()
+
+
+@login_required
+def delete_channel(request):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = json_data.get('channel_id')
+		channel = get_object_or_404(Channel, pk=channel_id)
+		
+		if request.user.userprofile in channel.administrators.all():
+			channel.delete()
+			message = 'Channel {0:s} has been deleted successfully.'.format(channel.name)
+		else:
+			message = 'Only administrators of this channel are allowed to delete this channel.'
+		return HttpResponse(json.dumps({'message': message}))
+	else:
+		return HttpResponseNotFound
 
