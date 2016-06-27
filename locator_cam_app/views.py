@@ -235,11 +235,12 @@ def fetch_moments(request):
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
 
-		# if there is a channel, get a moment query set for the channel
 		if channel_id is not None:
+			# if there is a channel, get a moment query set for the channel
 			channel_id_int = int(channel_id)
 			all_moments = Moment.objects.filter(channel__id=channel_id)
 		else:
+			# otherwise fetch moments not under any particular channel, i.e. public moments
 			all_moments = Moment.objects.all()
 
 		if latest_moment_pub_time is not None:
