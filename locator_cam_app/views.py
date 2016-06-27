@@ -241,7 +241,7 @@ def fetch_moments(request):
 			all_moments = Moment.objects.filter(channel__id=channel_id)
 		else:
 			# otherwise fetch moments not under any particular channel, i.e. public moments
-			all_moments = Moment.objects.all()
+			all_moments = Moment.objects.filter(channel__id__isnull=True)
 
 		if latest_moment_pub_time is not None:
 			all_moments = all_moments.exclude(pk__in=existing_moments_id).\
