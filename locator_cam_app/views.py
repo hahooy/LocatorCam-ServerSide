@@ -33,8 +33,6 @@ def register(request):
 		user_form = UserForm(data=request.POST)
 		profile_form = UserProfileForm(data=request.POST)
 
-		info = {'error': None} # the response JSON object containing error information
-
 		if user_form.is_valid() and profile_form.is_valid():
 			user = user_form.save()
 
@@ -50,10 +48,22 @@ def register(request):
 			profile.save()
 
 			registered = True
+			message = 'Register successfully'
 		else:
-			info['error'] = '{0:}{1:}'.format(user_form.errors, profile_form.errors)
+			"""
+			>>> f.errors.as_data()
+			{'sender': [ValidationError(['Enter a valid email address.'])],
+			'subject': [ValidationError(['This field is required.'])]}
+			"""
+			message = ''
+			for (field, errors) in user_form.errors.as_data().items():
+				message += str(field) + ': '
+				for error in errors:
+					for error_message in error.messages:
+						message += error_message + ' '
+				message += '\n'
 
-		return HttpResponse(json.dumps(info))
+		return HttpResponse(json.dumps({'message': message}))
 
 	else:
 		user_form = UserForm()
