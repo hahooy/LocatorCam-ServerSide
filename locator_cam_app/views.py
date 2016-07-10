@@ -474,3 +474,48 @@ def delete_channel(request):
 	else:
 		return HttpResponseNotFound
 
+
+@login_required
+def leave_channel(request):
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
+		json_data = json.loads(request.body.decode('utf-8'))
+		channel_id = json_data.get('channel_id')
+		channel = get_object_or_404(Channel, pk=channel_id)
+
+		if channel.administrators.filter(user__username=request.user.username).exists() and \
+			channel.administrators.count() == 1:
+			# this user is the only administrator of this channel, the user must not leave
+			message = 'You are the only administrator of this channel, you cannot leave. You can delete the channel instead.'
+		elif channel.members.filter(user__username=request.user.username).exists():
+			# removed from members
+			channel.members.remove(request.user.userprofile)
+			message = 'You left channel "%s".' % (channel.name)
+		else:
+			# not a member
+			message = 'You are not a member of channel "%s".' % (channel.name)
+
+		return HttpResponse(json.dumps({'message': message}))
+	else:
+		return HttpResponseNotFound
+
+
+
+@login_required
+def fetch_incoming_friend_requests(request):
+	""" fetch friend requests from others """
+	pass
+
+
+@login_required
+def accept_friend_request(request):
+	pass
+
+@login_required
+def fetch_incoming_channel_invitations(request):
+	""" fetch channel invites from others """
+	pass
+
+
+
+
+
