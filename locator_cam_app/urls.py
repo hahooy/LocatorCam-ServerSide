@@ -26,5 +26,7 @@ urlpatterns = [
 	url(r'^remove-member-from-channel/$', views.remove_member_from_channel, name='remove-member-from-channel'),
 	url(r'^remove-administrator-from-channel/$', views.remove_administrator_from_channel, name='remove-administrator-from-channel'),
 	url(r'^delete-channel/$', views.delete_channel, name='delete-channel'),
-	url(r'^leave-channel/$', views.leave_channel, name='leave-channel')
+	url(r'^leave-channel/$', views.leave_channel, name='leave-channel'),
+	url(r'^fetch-incoming-friend-requests/$', views.fetch_incoming_friend_requests, name='fetch-incoming-friend-requests'),
+	url(r'^accept-friend-request/$', views.accept_friend_request, name='accept-friend-request')
 ]

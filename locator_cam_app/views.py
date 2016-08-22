@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from locator_cam_app.forms import UserForm, UserProfileForm, MomentPhotoForm, MomentThumbnailForm, MomentForm
-from locator_cam_app.models import UserProfile, Moment, Channel
+from locator_cam_app.models import UserProfile, Moment, Channel, FriendRequest
 
 
 # Create your views here.
@@ -121,14 +121,25 @@ def search_user(request):
 def add_friend(request):
 	if request.method == 'POST':
 		content_type = request.POST.get('content_type')
-		other_user_name = request.POST.get('username')
+		other_user_name = request.POST.get('username')		
 		other_user = User.objects.get(username=other_user_name)
 		this_user = request.user
+		request_message = request.POST.get('message')
 		if this_user == other_user:
 			# adding the user itself as its friend is not allowed
-			return HttpResponse(json.dumps({'message': 'error'})) if content_type == 'JSON' else HttpResponse('error')
-		this_user.userprofile.friends.add(other_user.userprofile)
-		message = "{0:s} became your friend!".format(other_user_name)
+			message = 'Error: you cannot friend yourself!'
+		elif this_user.userprofile.friends.filter(user=other_user).exists():
+			# the two users are friends already, do not send the request
+			message = '"{0:s}" is your friend already.'.format(other_user_name)
+		else:
+			# create a friend request
+			friend_request = FriendRequest()
+			friend_request.requester = this_user
+			friend_request.requestee = other_user
+			friend_request.request_message = request_message
+			friend_request.save()
+			#this_user.userprofile.friends.add(other_user.userprofile)
+			message = 'Your friend request has been sent to "{0:s}".'.format(other_user_name)
 		return HttpResponse(json.dumps({'message': message})) if content_type == 'JSON' else HttpResponse(message)
 	return redirect('/locator-cam/')
 
@@ -503,12 +514,27 @@ def leave_channel(request):
 @login_required
 def fetch_incoming_friend_requests(request):
 	""" fetch friend requests from others """
-	pass
+	friend_requests = FriendRequest.objects.filter(requestee=request.user)
+	friend_requests_json = [{
+							 'request_id': friend_request.id,
+							 'requester_name': friend_request.requester.username,
+							 'request_message': friend_request.request_message
+							}
+							for friend_request in friend_requests]
+	return HttpResponse(json.dumps(friend_requests_json))
 
 
 @login_required
 def accept_friend_request(request):
-	pass
+	if request.method == 'POST' and re.search('application/json', request.META.get('CONTENT_TYPE'), re.IGNORECASE):
+		json_data = json.loads(request.body.decode('utf-8'))
+		request_id = json_data.get('request_id')
+		friend_request = get_object_or_404(FriendRequest, pk=request_id)
+		friend_request.requester.userprofile.friends.add(friend_request.requestee.userprofile)
+		return HttpResponse(json.dumps({'message': '{0:s} is your friend now!'.format(friend_request.requester.username)}))
+	else:
+		return HttpResponseNotFound
+
 
 @login_required
 def fetch_incoming_channel_invitations(request):

@@ -1,8 +1,10 @@
 from datetime import datetime
 
-from django.db import models
-from django.contrib.auth.models import User
 import hashlib
+
+from django.contrib.auth.models import User
+from django.db import models
+from django.utils import timezone
 
 
 class UserProfile(models.Model):
@@ -67,6 +69,9 @@ class FriendRequest(Request):
 		if self.requester == self.requestee:
 			# cannot send a friend request to self
 			return
+		elif self.requester.userprofile.friends.filter(user=self.requestee).exists():
+			# cannot send the request to an existing friend
+			return
 		else:
 			try:
 				existing_request = FriendRequest.objects.get(requester=self.requester, requestee=self.requestee)
@@ -74,7 +79,7 @@ class FriendRequest(Request):
 				existing_request = None
 			if existing_request:
 				# this friend request exists, just update fields
-				existing_request.time_created = datetime.utcnow()
+				existing_request.time_created = timezone.now()
 				existing_request.request_message = self.request_message
 				existing_request.save()
 			else:
