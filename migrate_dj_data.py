@@ -13,7 +13,7 @@ from locator_cam_app.models import Moment, MomentPhoto, MomentThumbnail, UserPro
 data = json.load(open('fishboard-export.json'))
 
 # Create a new user
-user = User(username='JestersHK1', password='123456', email='unknow@gmail.com')
+user = User(username='JestersHK1', password='******', email='unknow@gmail.com')
 user.save()
 user_profile = UserProfile()
 user_profile.user = user
