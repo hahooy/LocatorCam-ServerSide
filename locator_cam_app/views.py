@@ -233,14 +233,14 @@ def fetch_moments(request):
 			query_limit = request.POST.get('query_limit') or DEFAULT_QUERY_LIMIT
 			existing_moments_id = json.loads(request.POST.get('existing_moments_id'))
 
-		latest_moment_pub_time = None
-		earlist_moment_pub_time = None
+		latest_moment_pub_time_interval = None
+		earlist_moment_pub_time_interval = None
 
 		if len(existing_moments_id) > 0:
 			if published_later_than or published_later_than == 'True':
-				latest_moment_pub_time = Moment.objects.get(pk=existing_moments_id[0]).pub_time
+				latest_moment_pub_time_interval = Moment.objects.get(pk=existing_moments_id[0]).pub_time_interval
 			if published_earlier_than or published_earlier_than == 'True':
-				earlist_moment_pub_time = Moment.objects.get(pk=existing_moments_id[-1]).pub_time
+				earlist_moment_pub_time_interval = Moment.objects.get(pk=existing_moments_id[-1]).pub_time_interval
 
 		my_profile = request.user.userprofile
 		friends_profiles = UserProfile.objects.get(user__username=request.user.username).friends.all()
@@ -253,13 +253,13 @@ def fetch_moments(request):
 			# otherwise fetch moments not under any particular channel, i.e. public moments
 			all_moments = Moment.objects.filter(channel__id__isnull=True)
 
-		if latest_moment_pub_time is not None:
+		if latest_moment_pub_time_interval is not None:
 			all_moments = all_moments.exclude(pk__in=existing_moments_id).\
-			filter(Q(pub_time__gte=latest_moment_pub_time), \
+			filter(Q(pub_time_interval__gte=latest_moment_pub_time_interval), \
 			Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
-		elif earlist_moment_pub_time is not None:
+		elif earlist_moment_pub_time_interval is not None:
 			all_moments = all_moments.exclude(pk__in=existing_moments_id).\
-			filter(Q(pub_time__lte=earlist_moment_pub_time), \
+			filter(Q(pub_time_interval__lte=earlist_moment_pub_time_interval), \
 			Q(user__userprofile__in=friends_profiles) | Q(user__userprofile=my_profile))[:query_limit]
 		else:
 			all_moments = all_moments.exclude(pk__in=existing_moments_id).\
