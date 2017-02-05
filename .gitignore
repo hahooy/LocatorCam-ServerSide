@@ -2,3 +2,10 @@ locator_cam/local_settings.py
 *.pyc
 media
 *~
+# Ignore env
+locatorcam_env
+static
+bower_components
+media
+local_settings.py
+*.pyc
